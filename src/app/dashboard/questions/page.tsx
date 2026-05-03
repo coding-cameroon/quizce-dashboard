@@ -5,6 +5,7 @@ import { Plus } from "lucide-react";
 import { useState } from "react";
 import { columns, Question } from "./columns";
 import { DataTable } from "./data-table";
+import { useRouter } from "next/navigation.js";
 
 const dummySessions = [
   { id: "y1a2b3c4-d5e6-7890-abcd-111111111111", name: "Mathematics 2023" },
@@ -83,6 +84,7 @@ const dummyQuestions: Question[] = [
 ];
 
 export default function QuestionsPage() {
+  const router = useRouter();
   return (
     <div className="p-8 space-y-6">
       <div className="flex items-start justify-between">
@@ -92,7 +94,10 @@ export default function QuestionsPage() {
             Manage questions across all sessions.
           </p>
         </div>
-        <Button className="gap-2">
+        <Button
+          className="gap-2"
+          onClick={() => router.push("/dashboard/questions/imports/create")}
+        >
           <Plus className="h-4 w-4" />
           Add Question
         </Button>
