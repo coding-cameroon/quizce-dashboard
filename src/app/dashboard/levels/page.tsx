@@ -1,11 +1,11 @@
 "use client";
 
-import { DataTable } from "./data-table";
 import { columns, Level } from "./columns";
 import { Plus } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { AddLevelSheet } from "@/components/AddLevelSheet";
 import { useState } from "react";
+import { DataTable } from "@/components/DataTable";
 
 const dummyLevels: Level[] = [
   {

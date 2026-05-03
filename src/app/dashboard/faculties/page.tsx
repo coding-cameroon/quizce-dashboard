@@ -3,10 +3,9 @@
 import { Button } from "@/components/ui/button";
 import { Plus } from "lucide-react";
 import { useState } from "react";
-// import { AddFacultySheet } from "@/components/";
 import { columns, Faculty } from "./columns";
-import { DataTable } from "./data-table"; // reuse generic DataTable
 import { AddFacultySheet } from "@/components/AddFacultySheet";
+import { DataTable } from "@/components/DataTable";
 
 const dummyFaculties: Faculty[] = [
   {
