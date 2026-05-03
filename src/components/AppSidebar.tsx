@@ -52,7 +52,7 @@ const navItems = [
   },
   {
     label: "Sessions",
-    href: "/dashboard/years",
+    href: "/dashboard/sessions",
     icon: CalendarDays,
   },
   {
