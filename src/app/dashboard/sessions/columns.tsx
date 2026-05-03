@@ -11,7 +11,13 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import { ColumnDef } from "@tanstack/react-table";
-import { ArrowUpDown, MoreHorizontal } from "lucide-react";
+import {
+  ArrowUpDown,
+  Copy,
+  MoreHorizontal,
+  PenSquare,
+  Trash2,
+} from "lucide-react";
 
 export type Year = {
   id: string;
@@ -152,12 +158,14 @@ export const columns: ColumnDef<Year>[] = [
               <DropdownMenuItem
                 onClick={() => navigator.clipboard.writeText(year.id)}
               >
-                Copy ID
+                <Copy /> Copy ID
               </DropdownMenuItem>
               <DropdownMenuSeparator />
-              <DropdownMenuItem>Edit</DropdownMenuItem>
+              <DropdownMenuItem>
+                <PenSquare /> Edit
+              </DropdownMenuItem>
               <DropdownMenuItem className="text-destructive focus:text-destructive">
-                Delete
+                <Trash2 color="#ff6467" /> Delete
               </DropdownMenuItem>
             </DropdownMenuContent>
           </DropdownMenu>

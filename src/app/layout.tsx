@@ -7,6 +7,7 @@ import { AppSidebar } from "@/components/AppSidebar";
 import { Poppins } from "next/font/google";
 import { ThemeProvider } from "@/components/theme-provider";
 import { cookies } from "next/headers";
+import { MathJaxProvider } from "@/components/mathjax-provider";
 
 const poppins = Poppins({
   subsets: ["latin"],
@@ -46,7 +47,9 @@ export default async function RootLayout({
               </aside>
               <div className="flex flex-col flex-1 min-h-screen">
                 <AppNavbar />
-                <main className="w-full h-full">{children}</main>
+                <MathJaxProvider>
+                  <main className="w-full h-full">{children}</main>
+                </MathJaxProvider>
               </div>
             </SidebarProvider>
           </TooltipProvider>
