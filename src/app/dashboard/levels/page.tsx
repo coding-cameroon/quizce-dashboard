@@ -1,31 +1,40 @@
 "use client";
 
-import { columns, Level } from "./columns";
-import { Plus } from "lucide-react";
-import { Button } from "@/components/ui/button";
-import { AddLevelSheet } from "@/components/AddLevelSheet";
 import { useState } from "react";
-import { DataTable } from "@/components/DataTable";
+import { Plus } from "lucide-react";
 
-const dummyLevels: Level[] = [
-  {
-    id: "a1b2c3d4-e5f6-7890-abcd-ef1234567890",
-    name: "Ordinary Level",
-    slug: "o_level",
-    createdAt: new Date("2024-01-15T08:00:00Z"),
-    updatedAt: new Date("2024-03-10T12:30:00Z"),
-  },
-  {
-    id: "b2c3d4e5-f6a7-8901-bcde-f12345678901",
-    name: "Advanced Level",
-    slug: "a_level",
-    createdAt: new Date("2024-01-15T08:05:00Z"),
-    updatedAt: new Date("2024-04-22T09:15:00Z"),
-  },
-];
+import { columns } from "./columns";
+import { Button } from "@/components/ui/button";
+import { DataTable } from "@/components/DataTable";
+import { AddLevelSheet } from "@/components/AddLevelSheet";
+import { Level } from "@/types/levels";
+import { useDeleteLevel, useGetAllLevels } from "@/hooks/use-levels";
 
 export default function LevelsPage() {
   const [sheetOpen, setSheetOpen] = useState(false);
+  const [isDeleting, setIsDeleting] = useState(false);
+  const [selectedLevel, setSelectedLevel] = useState<Level | null>(null);
+
+  const { data: levels } = useGetAllLevels();
+  const { mutateAsync: deleteLevel, error } = useDeleteLevel();
+
+  const handleEdit = (level: Level) => {
+    setSelectedLevel(level);
+    setSheetOpen(true);
+  };
+
+  const handleDelete = async (levelId: string) => {
+    setIsDeleting(true);
+    await deleteLevel(levelId);
+    setIsDeleting(false);
+  };
+
+  console.log(levels);
+
+  const handleOpenChange = (open: boolean) => {
+    setSheetOpen(open);
+    if (!open) setSelectedLevel(null); // reset on close
+  };
 
   return (
     <div className="p-8 space-y-6">
@@ -40,7 +49,7 @@ export default function LevelsPage() {
         </div>
         <Button
           className="gap-2 cursor-pointer"
-          onClick={() => setSheetOpen(!sheetOpen)}
+          onClick={() => setSheetOpen(true)}
         >
           <Plus className="h-4 w-4" />
           Add Level
@@ -48,13 +57,17 @@ export default function LevelsPage() {
       </div>
 
       <DataTable
-        columns={columns}
-        data={dummyLevels}
+        data={levels ?? []}
+        columns={columns(handleEdit, handleDelete, isDeleting)} // pass handleEdit into columns
         filterColumn="name"
         filterPlaceholder="Filter by name..."
       />
 
-      <AddLevelSheet open={sheetOpen} onOpenChange={setSheetOpen} />
+      <AddLevelSheet
+        open={sheetOpen}
+        onOpenChange={handleOpenChange}
+        level={selectedLevel}
+      />
     </div>
   );
 }

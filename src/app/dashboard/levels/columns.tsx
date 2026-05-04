@@ -10,24 +10,22 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
+import { Level } from "@/types/levels";
 import { ColumnDef } from "@tanstack/react-table";
 import {
   ArrowUpDown,
   Copy,
+  Loader2,
   MoreHorizontal,
   SquarePen,
   Trash2,
 } from "lucide-react";
 
-export type Level = {
-  id: string;
-  name: "Ordinary Level" | "Advanced Level";
-  slug: "o_level" | "a_level";
-  createdAt: Date;
-  updatedAt: Date;
-};
-
-export const columns: ColumnDef<Level>[] = [
+export const columns = (
+  onEdit: (level: Level) => void,
+  onDelete: (levelId: string) => void,
+  isDeleting: boolean,
+): ColumnDef<Level>[] => [
   {
     accessorKey: "name",
     header: ({ column }) => (
@@ -66,7 +64,7 @@ export const columns: ColumnDef<Level>[] = [
       </Button>
     ),
     cell: ({ row }) => {
-      const date: Date = row.getValue("createdAt");
+      const date = new Date(row.getValue("createdAt"));
       return (
         <span className="text-muted-foreground text-sm">
           {date.toLocaleDateString("en-GB", {
@@ -91,7 +89,7 @@ export const columns: ColumnDef<Level>[] = [
       </Button>
     ),
     cell: ({ row }) => {
-      const date: Date = row.getValue("updatedAt");
+      const date = new Date(row.getValue("updatedAt"));
       return (
         <span className="text-muted-foreground text-sm">
           {date.toLocaleDateString("en-GB", {
@@ -120,18 +118,35 @@ export const columns: ColumnDef<Level>[] = [
             <DropdownMenuContent align="end">
               <DropdownMenuLabel>Actions</DropdownMenuLabel>
               <DropdownMenuItem
-                onClick={() => navigator.clipboard.writeText(level.id)}
+                onClick={() => navigator.clipboard.writeText(level?.id)}
               >
                 <Copy /> Copy ID
               </DropdownMenuItem>
               <DropdownMenuSeparator />
-              <DropdownMenuItem>
+              <DropdownMenuItem
+                disabled={isDeleting}
+                onClick={() => onEdit(level)}
+              >
                 {" "}
                 <SquarePen />
                 Edit
               </DropdownMenuItem>
-              <DropdownMenuItem className="text-destructive focus:text-destructive">
-                <Trash2 color="#ff6467" /> Delete
+              <DropdownMenuItem
+                disabled={isDeleting}
+                className="text-destructive focus:text-destructive"
+                onClick={() => onDelete(level.id)}
+              >
+                {isDeleting ? (
+                  <>
+                    <Loader2 className="h-4 w-4 animate-spin" />
+                    Deleting...
+                  </>
+                ) : (
+                  <>
+                    <Trash2 color="#ff6467" />
+                    Delete
+                  </>
+                )}
               </DropdownMenuItem>
             </DropdownMenuContent>
           </DropdownMenu>
