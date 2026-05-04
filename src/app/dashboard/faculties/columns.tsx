@@ -10,6 +10,7 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
+import { Faculty } from "@/types/faculty";
 import { ColumnDef } from "@tanstack/react-table";
 import {
   ArrowUpDown,
@@ -19,22 +20,16 @@ import {
   Trash2,
 } from "lucide-react";
 
-export type Faculty = {
-  id: string;
-  name: "ARTS" | "SCIENCE" | "COMMERCIAL";
-  levelId: string;
-  levelName: "Ordinary Level" | "Advanced Level";
-  createdAt: Date;
-  updatedAt: Date;
-};
-
 const facultyColorMap: Record<Faculty["name"], string> = {
   ARTS: "bg-purple-500/10 text-purple-400 border-purple-500/20",
   SCIENCE: "bg-blue-500/10 text-blue-400 border-blue-500/20",
   COMMERCIAL: "bg-amber-500/10 text-amber-400 border-amber-500/20",
 };
 
-export const columns: ColumnDef<Faculty>[] = [
+export const columns = (
+  onDelete: (facultyId: string) => void,
+  onEdit: (faculty: Faculty) => void,
+): ColumnDef<Faculty>[] => [
   {
     accessorKey: "name",
     header: ({ column }) => (
@@ -60,7 +55,7 @@ export const columns: ColumnDef<Faculty>[] = [
     },
   },
   {
-    accessorKey: "levelName",
+    id: "level",
     header: ({ column }) => (
       <Button
         variant="ghost"
@@ -73,7 +68,7 @@ export const columns: ColumnDef<Faculty>[] = [
     ),
     cell: ({ row }) => (
       <Badge variant="secondary" className="text-xs">
-        {row.getValue("levelName")}
+        {row.original.level?.name}
       </Badge>
     ),
   },
@@ -90,7 +85,7 @@ export const columns: ColumnDef<Faculty>[] = [
       </Button>
     ),
     cell: ({ row }) => {
-      const date: Date = row.getValue("createdAt");
+      const date = new Date(row.getValue("createdAt"));
       return (
         <span className="text-muted-foreground text-sm">
           {date.toLocaleDateString("en-GB", {
@@ -115,7 +110,7 @@ export const columns: ColumnDef<Faculty>[] = [
       </Button>
     ),
     cell: ({ row }) => {
-      const date: Date = row.getValue("updatedAt");
+      const date = new Date(row.getValue("updatedAt"));
       return (
         <span className="text-muted-foreground text-sm">
           {date.toLocaleDateString("en-GB", {
@@ -149,12 +144,13 @@ export const columns: ColumnDef<Faculty>[] = [
                 <Copy /> Copy ID
               </DropdownMenuItem>
               <DropdownMenuSeparator />
-              <DropdownMenuItem>
-                {" "}
-                <SquarePen />
-                Edit
+              <DropdownMenuItem onClick={() => onEdit(faculty)}>
+                <SquarePen /> Edit
               </DropdownMenuItem>
-              <DropdownMenuItem className="text-destructive focus:text-destructive">
+              <DropdownMenuItem
+                className="text-destructive focus:text-destructive"
+                onClick={() => onDelete(faculty.id)}
+              >
                 <Trash2 color="#ff6467" /> Delete
               </DropdownMenuItem>
             </DropdownMenuContent>

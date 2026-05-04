@@ -1,6 +1,10 @@
 "use client";
 
+import { useEffect, useState } from "react";
+import { BookOpen, Loader2 } from "lucide-react";
+
 import { Button } from "@/components/ui/button";
+import { ErrorMessage } from "./ErrorMessage";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import {
@@ -18,56 +22,101 @@ import {
   SheetHeader,
   SheetTitle,
 } from "@/components/ui/sheet";
-import { BookOpen, Loader2 } from "lucide-react";
-import { useState } from "react";
+
+import { useGetAllLevels } from "@/hooks/use-levels";
+import { useGetFacultiesByLevelId } from "@/hooks/use-faculties";
+import { useCreateSubject, useUpdateSubject } from "@/hooks/use-subjects";
+import { Subject } from "@/types/subject";
 
 type AddSubjectSheetProps = {
   open: boolean;
   onOpenChange: (open: boolean) => void;
+  subject?: Subject | null;
 };
 
 function toSlug(name: string) {
   return name.toLowerCase().trim().replace(/\s+/g, "_");
 }
 
-const facultyByLevel: Record<string, string[]> = {
-  "Ordinary Level": ["ARTS", "SCIENCE", "COMMERCIAL"],
-  "Advanced Level": ["ARTS", "SCIENCE", "COMMERCIAL"],
-};
-
-export function AddSubjectSheet({ open, onOpenChange }: AddSubjectSheetProps) {
-  const [levelName, setLevelName] = useState("");
-  const [facultyName, setFacultyName] = useState("");
+export function AddSubjectSheet({
+  open,
+  onOpenChange,
+  subject,
+}: AddSubjectSheetProps) {
   const [name, setName] = useState("");
-  const [loading, setLoading] = useState(false);
+  const [levelId, setLevelId] = useState("");
+  const [facultyId, setFacultyId] = useState("");
 
+  const isEditing = !!subject;
   const slug = toSlug(name);
 
-  const handleSubmit = async () => {
-    if (!name || !levelName || !facultyName) return;
-    setLoading(true);
-    // TODO: call your API here
-    await new Promise((r) => setTimeout(r, 1000));
-    setLoading(false);
-    onOpenChange(false);
-    reset();
+  const { data: levels, isLoading: isLoadingLevels } = useGetAllLevels();
+  const { data: faculties, isLoading: isLoadingFaculties } =
+    useGetFacultiesByLevelId(levelId);
+  const {
+    mutate: createSubject,
+    isPending: isCreating,
+    error: createError,
+  } = useCreateSubject();
+  const {
+    mutate: updateSubject,
+    isPending: isUpdating,
+    error: updateError,
+  } = useUpdateSubject();
+
+  const isPending = isCreating || isUpdating;
+  const error = createError || updateError;
+
+  useEffect(() => {
+    if (subject) {
+      setName(subject.name);
+      setLevelId(subject.faculty?.level?.id ?? "");
+      setFacultyId(subject.facultyId);
+    } else {
+      reset();
+    }
+  }, [subject]);
+
+  // reset faculty when level changes
+  const handleLevelChange = (val: string) => {
+    setLevelId(val);
+    setFacultyId("");
+  };
+
+  const handleSubmit = () => {
+    if (!name || !facultyId) return;
+
+    const payload = { name, slug, facultyId };
+
+    if (isEditing) {
+      updateSubject(
+        { subjectId: subject.id, payload },
+        {
+          onSuccess: () => {
+            reset();
+            onOpenChange(false);
+          },
+        },
+      );
+    } else {
+      createSubject(payload, {
+        onSuccess: () => {
+          reset();
+          onOpenChange(false);
+        },
+      });
+    }
   };
 
   const reset = () => {
     setName("");
-    setLevelName("");
-    setFacultyName("");
+    setLevelId("");
+    setFacultyId("");
   };
 
   const handleClose = () => {
     reset();
     onOpenChange(false);
-  };
-
-  // Reset faculty when level changes
-  const handleLevelChange = (val: string) => {
-    setLevelName(val);
-    setFacultyName("");
   };
 
   return (
@@ -79,25 +128,40 @@ export function AddSubjectSheet({ open, onOpenChange }: AddSubjectSheetProps) {
               <BookOpen className="h-4 w-4 text-primary" />
             </div>
             <div>
-              <SheetTitle className="text-base">Add Subject</SheetTitle>
+              <SheetTitle className="text-base">
+                {isEditing ? "Edit Subject" : "Add Subject"}
+              </SheetTitle>
               <SheetDescription className="text-xs mt-0.5">
-                Create a new subject under a faculty.
+                {isEditing
+                  ? "Update the selected subject."
+                  : "Create a new subject under a faculty."}
               </SheetDescription>
             </div>
           </div>
         </SheetHeader>
 
-        <div className="flex-1 p-6 space-y-5">
+        <div className="flex-1 py-6 px-6 space-y-5">
           {/* Level */}
           <div className="space-y-2">
             <Label>Academic Level</Label>
-            <Select value={levelName} onValueChange={handleLevelChange}>
+            <Select
+              value={levelId}
+              onValueChange={handleLevelChange}
+              disabled={isLoadingLevels}
+            >
               <SelectTrigger className="w-full">
-                <SelectValue placeholder="Select a level..." />
+                <SelectValue
+                  placeholder={
+                    isLoadingLevels ? "Loading levels..." : "Select a level..."
+                  }
+                />
               </SelectTrigger>
               <SelectContent>
-                <SelectItem value="Ordinary Level">Ordinary Level</SelectItem>
-                <SelectItem value="Advanced Level">Advanced Level</SelectItem>
+                {levels?.map((level) => (
+                  <SelectItem key={level.id} value={level.id}>
+                    {level.name}
+                  </SelectItem>
+                ))}
               </SelectContent>
             </Select>
           </div>
@@ -106,21 +170,25 @@ export function AddSubjectSheet({ open, onOpenChange }: AddSubjectSheetProps) {
           <div className="space-y-2">
             <Label>Faculty</Label>
             <Select
-              value={facultyName}
-              onValueChange={setFacultyName}
-              disabled={!levelName}
+              value={facultyId}
+              onValueChange={setFacultyId}
+              disabled={!levelId || isLoadingFaculties}
             >
               <SelectTrigger className="w-full">
                 <SelectValue
                   placeholder={
-                    levelName ? "Select a faculty..." : "Select a level first"
+                    !levelId
+                      ? "Select a level first"
+                      : isLoadingFaculties
+                        ? "Loading faculties..."
+                        : "Select a faculty..."
                   }
                 />
               </SelectTrigger>
               <SelectContent>
-                {(facultyByLevel[levelName] ?? []).map((f) => (
-                  <SelectItem key={f} value={f}>
-                    {f.charAt(0) + f.slice(1).toLowerCase()}
+                {faculties?.map((faculty) => (
+                  <SelectItem key={faculty.id} value={faculty.id}>
+                    {faculty.name}
                   </SelectItem>
                 ))}
               </SelectContent>
@@ -134,7 +202,7 @@ export function AddSubjectSheet({ open, onOpenChange }: AddSubjectSheetProps) {
               placeholder="e.g. Mathematics, Physics..."
               value={name}
               onChange={(e) => setName(e.target.value)}
-              disabled={!facultyName}
+              disabled={!facultyId}
             />
             {name && (
               <p className="text-xs text-muted-foreground">
@@ -147,7 +215,7 @@ export function AddSubjectSheet({ open, onOpenChange }: AddSubjectSheetProps) {
           </div>
 
           {/* Preview */}
-          {name && facultyName && levelName && (
+          {name && facultyId && levelId && (
             <div className="rounded-lg border border-border bg-muted/40 p-4 space-y-3">
               <p className="text-xs font-medium text-muted-foreground uppercase tracking-widest">
                 Preview
@@ -163,35 +231,35 @@ export function AddSubjectSheet({ open, onOpenChange }: AddSubjectSheetProps) {
                     {slug}
                   </span>
                 </div>
-                <div className="flex justify-between">
-                  <span className="text-muted-foreground">Faculty</span>
-                  <span>{facultyName}</span>
-                </div>
-                <div className="flex justify-between">
-                  <span className="text-muted-foreground">Level</span>
-                  <span>{levelName}</span>
-                </div>
               </div>
             </div>
           )}
+
+          <ErrorMessage message={error?.message} />
         </div>
 
-        <SheetFooter className="gap-2 flex-row">
+        <SheetFooter className="gap-2 flex-row px-6 pb-6">
           <Button
             variant="outline"
             className="flex-1"
             onClick={handleClose}
-            disabled={loading}
+            disabled={isPending}
           >
             Cancel
           </Button>
           <Button
             className="flex-1 gap-2"
             onClick={handleSubmit}
-            disabled={!name || !levelName || !facultyName || loading}
+            disabled={!name || !facultyId || isPending}
           >
-            {loading && <Loader2 className="h-4 w-4 animate-spin" />}
-            {loading ? "Adding..." : "Add Subject"}
+            {isPending && <Loader2 className="h-4 w-4 animate-spin" />}
+            {isPending
+              ? isEditing
+                ? "Updating..."
+                : "Adding..."
+              : isEditing
+                ? "Update Subject"
+                : "Add Subject"}
           </Button>
         </SheetFooter>
       </SheetContent>

@@ -10,6 +10,7 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
+import { Subject } from "@/types/subject";
 import { ColumnDef } from "@tanstack/react-table";
 import {
   ArrowUpDown,
@@ -19,24 +20,16 @@ import {
   Trash2,
 } from "lucide-react";
 
-export type Subject = {
-  id: string;
-  name: string;
-  slug: string;
-  facultyId: string;
-  facultyName: "ARTS" | "SCIENCE" | "COMMERCIAL";
-  levelName: "Ordinary Level" | "Advanced Level";
-  createdAt: Date;
-  updatedAt: Date;
-};
-
 const facultyColorMap: Record<string, string> = {
   ARTS: "bg-purple-500/10 text-purple-400 border-purple-500/20",
   SCIENCE: "bg-blue-500/10 text-blue-400 border-blue-500/20",
   COMMERCIAL: "bg-amber-500/10 text-amber-400 border-amber-500/20",
 };
 
-export const columns: ColumnDef<Subject>[] = [
+export const columns = (
+  onDelete: (subjectId: string) => void,
+  onEdit: (subject: Subject) => void,
+): ColumnDef<Subject>[] => [
   {
     accessorKey: "name",
     header: ({ column }) => (
@@ -63,7 +56,7 @@ export const columns: ColumnDef<Subject>[] = [
     ),
   },
   {
-    accessorKey: "facultyName",
+    id: "faculty",
     header: ({ column }) => (
       <Button
         variant="ghost"
@@ -75,7 +68,7 @@ export const columns: ColumnDef<Subject>[] = [
       </Button>
     ),
     cell: ({ row }) => {
-      const faculty: string = row.getValue("facultyName");
+      const faculty = row.original.faculty?.name;
       return (
         <Badge
           variant="outline"
@@ -85,10 +78,9 @@ export const columns: ColumnDef<Subject>[] = [
         </Badge>
       );
     },
-    filterFn: (row, id, value) => value.includes(row.getValue(id)),
   },
   {
-    accessorKey: "levelName",
+    id: "level",
     header: ({ column }) => (
       <Button
         variant="ghost"
@@ -101,10 +93,9 @@ export const columns: ColumnDef<Subject>[] = [
     ),
     cell: ({ row }) => (
       <Badge variant="secondary" className="text-xs">
-        {row.getValue("levelName")}
+        {row.original.faculty?.level?.name}
       </Badge>
     ),
-    filterFn: (row, id, value) => value.includes(row.getValue(id)),
   },
   {
     accessorKey: "createdAt",
@@ -119,7 +110,7 @@ export const columns: ColumnDef<Subject>[] = [
       </Button>
     ),
     cell: ({ row }) => {
-      const date: Date = row.getValue("createdAt");
+      const date = new Date(row.getValue("createdAt"));
       return (
         <span className="text-muted-foreground text-sm">
           {date.toLocaleDateString("en-GB", {
@@ -153,13 +144,14 @@ export const columns: ColumnDef<Subject>[] = [
                 <Copy /> Copy ID
               </DropdownMenuItem>
               <DropdownMenuSeparator />
-              <DropdownMenuItem>
-                <SquarePen />
-                Edit
+              <DropdownMenuItem onClick={() => onEdit(subject)}>
+                <SquarePen /> Edit
               </DropdownMenuItem>
-              <DropdownMenuItem className="text-destructive focus:text-destructive">
-                <Trash2 color="#ff6467" />
-                Delete
+              <DropdownMenuItem
+                className="text-destructive focus:text-destructive"
+                onClick={() => onDelete(subject.id)}
+              >
+                <Trash2 color="#ff6467" /> Delete
               </DropdownMenuItem>
             </DropdownMenuContent>
           </DropdownMenu>

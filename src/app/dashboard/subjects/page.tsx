@@ -1,77 +1,35 @@
 "use client";
 
-import { Button } from "@/components/ui/button";
-import { Plus } from "lucide-react";
 import { useState } from "react";
-import { columns, Subject } from "./columns";
+import { Plus } from "lucide-react";
+
+import { columns } from "./columns";
+import { Button } from "@/components/ui/button";
 import { DataTable } from "./data-table";
 import { AddSubjectSheet } from "@/components/AddSubjectSheet";
-
-const dummySubjects: Subject[] = [
-  {
-    id: "1a2b3c4d-5e6f-7890-abcd-111111111111",
-    name: "Mathematics",
-    slug: "mathematics",
-    facultyId: "c3d4e5f6-a7b8-9012-cdef-123456789012",
-    facultyName: "SCIENCE",
-    levelName: "Ordinary Level",
-    createdAt: new Date("2024-03-01T08:00:00Z"),
-    updatedAt: new Date("2024-04-01T08:00:00Z"),
-  },
-  {
-    id: "2b3c4d5e-6f7a-8901-bcde-222222222222",
-    name: "Physics",
-    slug: "physics",
-    facultyId: "c3d4e5f6-a7b8-9012-cdef-123456789012",
-    facultyName: "SCIENCE",
-    levelName: "Ordinary Level",
-    createdAt: new Date("2024-03-01T08:05:00Z"),
-    updatedAt: new Date("2024-04-01T08:05:00Z"),
-  },
-  {
-    id: "3c4d5e6f-7a8b-9012-cdef-333333333333",
-    name: "Literature",
-    slug: "literature",
-    facultyId: "d4e5f6a7-b8c9-0123-defa-234567890123",
-    facultyName: "ARTS",
-    levelName: "Ordinary Level",
-    createdAt: new Date("2024-03-02T08:00:00Z"),
-    updatedAt: new Date("2024-04-02T08:00:00Z"),
-  },
-  {
-    id: "4d5e6f7a-8b9c-0123-defa-444444444444",
-    name: "Accounting",
-    slug: "accounting",
-    facultyId: "e5f6a7b8-c9d0-1234-efab-345678901234",
-    facultyName: "COMMERCIAL",
-    levelName: "Ordinary Level",
-    createdAt: new Date("2024-03-03T08:00:00Z"),
-    updatedAt: new Date("2024-04-03T08:00:00Z"),
-  },
-  {
-    id: "5e6f7a8b-9c0d-1234-efab-555555555555",
-    name: "Further Mathematics",
-    slug: "further_mathematics",
-    facultyId: "f6a7b8c9-d0e1-2345-fabc-456789012345",
-    facultyName: "SCIENCE",
-    levelName: "Advanced Level",
-    createdAt: new Date("2024-03-04T08:00:00Z"),
-    updatedAt: new Date("2024-04-04T08:00:00Z"),
-  },
-  {
-    id: "6f7a8b9c-0d1e-2345-fabc-666666666666",
-    name: "History",
-    slug: "history",
-    facultyId: "a7b8c9d0-e1f2-3456-abcd-567890123456",
-    facultyName: "ARTS",
-    levelName: "Advanced Level",
-    createdAt: new Date("2024-03-05T08:00:00Z"),
-    updatedAt: new Date("2024-04-05T08:00:00Z"),
-  },
-];
+import { Subject } from "@/types/subject";
+import { useGetAllSubjects, useDeleteSubject } from "@/hooks/use-subjects";
 
 export default function SubjectsPage() {
   const [sheetOpen, setSheetOpen] = useState(false);
+  const [selectedSubject, setSelectedSubject] = useState<Subject | null>(null);
+
+  const { data: subjects } = useGetAllSubjects();
+  const { mutate: deleteSubject } = useDeleteSubject();
+
+  const handleDelete = (subjectId: string) => {
+    deleteSubject(subjectId);
+  };
+
+  const handleEdit = (subject: Subject) => {
+    setSelectedSubject(subject);
+    setSheetOpen(true);
+  };
+
+  const handleOpenChange = (open: boolean) => {
+    setSheetOpen(open);
+    if (!open) setSelectedSubject(null);
+  };
 
   return (
     <div className="p-8 space-y-6">
@@ -88,9 +46,16 @@ export default function SubjectsPage() {
         </Button>
       </div>
 
-      <DataTable columns={columns} data={dummySubjects} />
+      <DataTable
+        columns={columns(handleDelete, handleEdit)}
+        data={subjects ?? []}
+      />
 
-      <AddSubjectSheet open={sheetOpen} onOpenChange={setSheetOpen} />
+      <AddSubjectSheet
+        open={sheetOpen}
+        onOpenChange={handleOpenChange}
+        subject={selectedSubject}
+      />
     </div>
   );
 }

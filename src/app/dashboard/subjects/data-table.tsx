@@ -60,10 +60,6 @@ export function DataTable<TData, TValue>({
 
   const hasActiveFilters = columnFilters.length > 0;
 
-  const clearFilters = () => {
-    table.resetColumnFilters();
-  };
-
   return (
     <div className="rounded-xl border border-border bg-card">
       {/* ── TOOLBAR ── */}
@@ -88,7 +84,7 @@ export function DataTable<TData, TValue>({
               <Button
                 variant="ghost"
                 size="sm"
-                onClick={clearFilters}
+                onClick={() => table.resetColumnFilters()}
                 className="h-8 gap-1.5 text-xs text-muted-foreground"
               >
                 <X className="h-3 w-3" />
@@ -109,13 +105,12 @@ export function DataTable<TData, TValue>({
           {/* Level filter */}
           <Select
             value={
-              (
-                table.getColumn("levelName")?.getFilterValue() as string[]
-              )?.[0] ?? "all"
+              (table.getColumn("level")?.getFilterValue() as string[])?.[0] ??
+              "all"
             }
             onValueChange={(val) =>
               table
-                .getColumn("levelName")
+                .getColumn("level")
                 ?.setFilterValue(val === "all" ? undefined : [val])
             }
           >
@@ -132,13 +127,12 @@ export function DataTable<TData, TValue>({
           {/* Faculty filter */}
           <Select
             value={
-              (
-                table.getColumn("facultyName")?.getFilterValue() as string[]
-              )?.[0] ?? "all"
+              (table.getColumn("faculty")?.getFilterValue() as string[])?.[0] ??
+              "all"
             }
             onValueChange={(val) =>
               table
-                .getColumn("facultyName")
+                .getColumn("faculty")
                 ?.setFilterValue(val === "all" ? undefined : [val])
             }
           >
@@ -155,18 +149,12 @@ export function DataTable<TData, TValue>({
 
           {/* Active filter badges */}
           <div className="flex items-center gap-1.5 ml-1">
-            {(
-              table.getColumn("levelName")?.getFilterValue() as string[]
-            )?.[0] && (
+            {(table.getColumn("level")?.getFilterValue() as string[])?.[0] && (
               <Badge variant="secondary" className="text-xs gap-1 pr-1">
-                {
-                  (
-                    table.getColumn("levelName")?.getFilterValue() as string[]
-                  )[0]
-                }
+                {(table.getColumn("level")?.getFilterValue() as string[])[0]}
                 <button
                   onClick={() =>
-                    table.getColumn("levelName")?.setFilterValue(undefined)
+                    table.getColumn("level")?.setFilterValue(undefined)
                   }
                   className="ml-0.5 hover:text-foreground"
                 >
@@ -175,17 +163,13 @@ export function DataTable<TData, TValue>({
               </Badge>
             )}
             {(
-              table.getColumn("facultyName")?.getFilterValue() as string[]
+              table.getColumn("faculty")?.getFilterValue() as string[]
             )?.[0] && (
               <Badge variant="secondary" className="text-xs gap-1 pr-1">
-                {
-                  (
-                    table.getColumn("facultyName")?.getFilterValue() as string[]
-                  )[0]
-                }
+                {(table.getColumn("faculty")?.getFilterValue() as string[])[0]}
                 <button
                   onClick={() =>
-                    table.getColumn("facultyName")?.setFilterValue(undefined)
+                    table.getColumn("faculty")?.setFilterValue(undefined)
                   }
                   className="ml-0.5 hover:text-foreground"
                 >
@@ -195,7 +179,7 @@ export function DataTable<TData, TValue>({
             )}
           </div>
 
-          {/* Page size — pushed to right */}
+          {/* Page size */}
           <div className="ml-auto flex items-center gap-2">
             <span className="text-xs text-muted-foreground">Show</span>
             <Select

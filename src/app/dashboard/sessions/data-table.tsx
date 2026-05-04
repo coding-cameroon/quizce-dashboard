@@ -4,6 +4,7 @@ import {
   ColumnDef,
   ColumnFiltersState,
   SortingState,
+  StringHeaderIdentifier,
   flexRender,
   getCoreRowModel,
   getFilteredRowModel,
@@ -12,7 +13,7 @@ import {
   useReactTable,
 } from "@tanstack/react-table";
 import { Search, SlidersHorizontal, X } from "lucide-react";
-import { useState } from "react";
+import { useMemo, useState } from "react";
 
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -32,17 +33,31 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
-import { columns, Year } from "./columns";
+import { columns as getColumns } from "./columns";
+import { Year } from "@/types/year";
+import { Subject } from "@/types/subject";
 
 type DataTableProps = {
   data: Year[];
-  subjects: string[];
+  subjects: Subject[];
+  onEdit: (year: Year) => void;
+  onDelete: (yearId: string) => void;
 };
 
-export function DataTable({ data, subjects }: DataTableProps) {
+export function DataTable({
+  data,
+  subjects,
+  onEdit,
+  onDelete,
+}: DataTableProps) {
   const [sorting, setSorting] = useState<SortingState>([]);
   const [columnFilters, setColumnFilters] = useState<ColumnFiltersState>([]);
   const [pageSize, setPageSize] = useState(10);
+
+  const columns = useMemo(
+    () => getColumns(onEdit, onDelete),
+    [onEdit, onDelete],
+  );
 
   const table = useReactTable({
     data,
@@ -168,8 +183,8 @@ export function DataTable({ data, subjects }: DataTableProps) {
             <SelectContent>
               <SelectItem value="all">All subjects</SelectItem>
               {subjects.map((s) => (
-                <SelectItem key={s} value={s}>
-                  {s}
+                <SelectItem key={s.id} value={s.id}>
+                  {s.name}
                 </SelectItem>
               ))}
             </SelectContent>

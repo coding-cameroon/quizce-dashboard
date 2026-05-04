@@ -10,6 +10,7 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
+import { Year } from "@/types/year";
 import { ColumnDef } from "@tanstack/react-table";
 import {
   ArrowUpDown,
@@ -19,24 +20,16 @@ import {
   Trash2,
 } from "lucide-react";
 
-export type Year = {
-  id: string;
-  name: string;
-  subjectId: string;
-  subjectName: string;
-  facultyName: "ARTS" | "SCIENCE" | "COMMERCIAL";
-  levelName: "Ordinary Level" | "Advanced Level";
-  createdAt: Date;
-  updatedAt: Date;
-};
-
 const facultyColorMap: Record<string, string> = {
   ARTS: "bg-purple-500/10 text-purple-400 border-purple-500/20",
   SCIENCE: "bg-blue-500/10 text-blue-400 border-blue-500/20",
   COMMERCIAL: "bg-amber-500/10 text-amber-400 border-amber-500/20",
 };
 
-export const columns: ColumnDef<Year>[] = [
+export const columns = (
+  onEdit: (year: Year) => void,
+  onDelete: (yearId: string) => void,
+): ColumnDef<Year>[] => [
   {
     accessorKey: "name",
     header: ({ column }) => (
@@ -66,7 +59,7 @@ export const columns: ColumnDef<Year>[] = [
       </Button>
     ),
     cell: ({ row }) => (
-      <span className="text-sm">{row.getValue("subjectName")}</span>
+      <span className="text-sm">{row.original.subject.name}</span>
     ),
     filterFn: (row, id, value) => value.includes(row.getValue(id)),
   },
@@ -87,9 +80,9 @@ export const columns: ColumnDef<Year>[] = [
       return (
         <Badge
           variant="outline"
-          className={`text-xs font-semibold ${facultyColorMap[faculty]}`}
+          className={`text-xs font-semibold ${facultyColorMap[row.original.subject.faculty.name]}`}
         >
-          {faculty}
+          {row.original.subject.faculty.name}
         </Badge>
       );
     },
@@ -109,7 +102,7 @@ export const columns: ColumnDef<Year>[] = [
     ),
     cell: ({ row }) => (
       <Badge variant="secondary" className="text-xs">
-        {row.getValue("levelName")}
+        {row.original.subject.faculty.level.name}
       </Badge>
     ),
     filterFn: (row, id, value) => value.includes(row.getValue(id)),
@@ -127,7 +120,7 @@ export const columns: ColumnDef<Year>[] = [
       </Button>
     ),
     cell: ({ row }) => {
-      const date: Date = row.getValue("createdAt");
+      const date: Date = new Date(row.getValue("createdAt"));
       return (
         <span className="text-muted-foreground text-sm">
           {date.toLocaleDateString("en-GB", {
@@ -161,11 +154,14 @@ export const columns: ColumnDef<Year>[] = [
                 <Copy /> Copy ID
               </DropdownMenuItem>
               <DropdownMenuSeparator />
-              <DropdownMenuItem>
-                <PenSquare /> Edit
+              <DropdownMenuItem onClick={() => onEdit(year)}>
+                <PenSquare className="mr-2 h-4 w-4" /> Edit
               </DropdownMenuItem>
-              <DropdownMenuItem className="text-destructive focus:text-destructive">
-                <Trash2 color="#ff6467" /> Delete
+              <DropdownMenuItem
+                className="text-destructive"
+                onClick={() => onDelete(year.id)}
+              >
+                <Trash2 className="mr-2 h-4 w-4" /> Delete
               </DropdownMenuItem>
             </DropdownMenuContent>
           </DropdownMenu>
