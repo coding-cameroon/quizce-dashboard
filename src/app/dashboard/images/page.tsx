@@ -1,7 +1,8 @@
 "use client";
 
-import { useState, useMemo } from "react";
-import { Plus, Search } from "lucide-react";
+import { useState } from "react";
+import { Loader2, Plus, Search } from "lucide-react";
+
 import { Input } from "@/components/ui/input";
 import {
   Select,
@@ -14,59 +15,51 @@ import { Button } from "@/components/ui/button";
 import { ImageCard } from "@/components/ImageCard";
 import { AddImageSheet } from "@/components/AddImageSheet";
 
-export const dummyData = {
-  subjects: [
-    { id: "s1", name: "Mathematics" },
-    { id: "s2", name: "Physics" },
-  ],
-  years: [
-    { id: "y1", subjectId: "s1", name: "2024" },
-    { id: "y2", subjectId: "s1", name: "2023" },
-    { id: "y3", subjectId: "s2", name: "2024" },
-  ],
-  questions: [
-    {
-      id: "q1",
-      yearId: "y1",
-      number: 1,
-      question: "Calculate the integral...",
-    },
-  ],
-  images: [
-    { id: "img1", questionId: "q1", publicId: "math_q1", optionIndex: null },
-    { id: "img2", questionId: "q1", publicId: "math_opt1", optionIndex: 0 },
-  ],
-};
+import { useGetAllLevels } from "@/hooks/use-levels";
+import { useGetFacultiesByLevelId } from "@/hooks/use-faculties";
+import { useGetSubjectsByFacultyId } from "@/hooks/use-subjects";
+import { useGetYearsBySubjectId } from "@/hooks/use-years";
+import {
+  useDeleteImage,
+  useDeleteImagesByQuestionId,
+  useGetImagesByYearId,
+} from "@/hooks/use-images";
+import { ErrorMessage } from "@/components/ErrorMessage";
 
 export default function AdminImagesPage() {
-  const [subjectId, setSubjectId] = useState<string>("");
-  const [yearId, setYearId] = useState<string>("");
-  const [questionId, setQuestionId] = useState<string>("");
+  const [levelId, setLevelId] = useState("");
+  const [facultyId, setFacultyId] = useState("");
+  const [subjectId, setSubjectId] = useState("");
+  const [yearId, setYearId] = useState("");
+  const [questionId, setQuestionId] = useState("");
+
   const [isSheetOpen, setIsSheetOpen] = useState(false);
   const [editingImage, setEditingImage] = useState(null);
 
-  // Filter logic
-  const filteredYears = dummyData.years.filter(
-    (y) => y.subjectId === subjectId,
-  );
-  const filteredQuestions = dummyData.questions.filter(
-    (q) => q.yearId === yearId,
-  );
+  // ✅ API HOOKS (correct usage)
+  const { data: levels, isLoading: loadingLevels } = useGetAllLevels();
+  const { data: faculties, isLoading: loadingFaculties } =
+    useGetFacultiesByLevelId(levelId);
+  const { data: subjects, isLoading: loadingSubjects } =
+    useGetSubjectsByFacultyId(facultyId);
+  const { data: years, isLoading: loadingYears } =
+    useGetYearsBySubjectId(subjectId);
+  const { data: images, isLoading: loadingImages } =
+    useGetImagesByYearId(yearId);
 
-  const filteredImages = useMemo(() => {
-    if (!subjectId || !yearId) return [];
+  const {
+    mutateAsync: deleteImage,
+    isPending,
+    error,
+  } = useDeleteImagesByQuestionId();
 
-    return dummyData.images.filter((img) => {
-      const question = dummyData.questions.find((q) => q.id === img.questionId);
-      const yearMatches = question?.yearId === yearId;
-      const questionMatches = questionId ? img.questionId === questionId : true;
-      return yearMatches && questionMatches;
-    });
-  }, [subjectId, yearId, questionId]);
+  const handleDeleteImage = async (imageId: string) => {
+    await deleteImage(imageId);
+  };
 
   return (
     <div className="p-8 space-y-6">
-      {/* Header with responsive Add Image Button */}
+      {/* Header */}
       <div className="flex w-full flex-wrap items-center justify-between gap-4">
         <div>
           <h1 className="text-3xl font-bold">Quiz images</h1>
@@ -86,97 +79,208 @@ export default function AdminImagesPage() {
       </div>
 
       {/* Toolbar */}
-      <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 lg:grid-cols-4 gap-4 items-center">
-        {/* Subject Select */}
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-6 gap-4 w-full">
+        {/* LEVEL */}
         <Select
-          onValueChange={(v) => {
-            setSubjectId(v);
+          value={levelId}
+          onValueChange={(val) => {
+            setLevelId(val);
+            setFacultyId("");
+            setSubjectId("");
             setYearId("");
             setQuestionId("");
           }}
         >
-          <SelectTrigger className="w-full">
-            <SelectValue placeholder="Select Subject" />
+          <SelectTrigger className="w-full min-w-0">
+            <SelectValue
+              placeholder={loadingLevels ? "Loading..." : "Select Level"}
+              className="truncate"
+            />
           </SelectTrigger>
-          <SelectContent>
-            {dummyData.subjects.map((s: any) => (
-              <SelectItem key={s.id} value={s.id}>
-                {s.name}
-              </SelectItem>
-            ))}
+          <SelectContent className="w-[var(--radix-select-trigger-width)] max-w-full">
+            {levels
+              ?.filter((l) => l.id)
+              .map((l) => (
+                <SelectItem key={l.id} value={l.id} className="truncate">
+                  {l.name}
+                </SelectItem>
+              ))}
           </SelectContent>
         </Select>
 
-        {/* Year Select */}
+        {/* FACULTY */}
         <Select
-          disabled={!subjectId}
-          onValueChange={(v) => {
-            setYearId(v);
+          value={facultyId}
+          disabled={!levelId || loadingFaculties}
+          onValueChange={(val) => {
+            setFacultyId(val);
+            setSubjectId("");
+            setYearId("");
             setQuestionId("");
           }}
-          value={yearId}
         >
-          <SelectTrigger className="w-full">
-            <SelectValue placeholder="Select Year" />
+          <SelectTrigger className="w-full min-w-0">
+            <SelectValue
+              placeholder={
+                !levelId
+                  ? "Select level first"
+                  : loadingFaculties
+                    ? "Loading..."
+                    : "Select Faculty"
+              }
+              className="truncate"
+            />
           </SelectTrigger>
-          <SelectContent>
-            {filteredYears.map((y) => (
-              <SelectItem key={y.id} value={y.id}>
-                {y.name}
-              </SelectItem>
-            ))}
+          <SelectContent className="w-[var(--radix-select-trigger-width)]">
+            {faculties
+              ?.filter((f) => f.id)
+              .map((f) => (
+                <SelectItem key={f.id} value={f.id} className="truncate">
+                  {f.name}
+                </SelectItem>
+              ))}
           </SelectContent>
         </Select>
 
-        {/* Question Select (Optional) */}
+        {/* SUBJECT */}
         <Select
-          disabled={!yearId}
-          onValueChange={setQuestionId}
-          value={questionId}
+          value={subjectId}
+          disabled={!facultyId || loadingSubjects}
+          onValueChange={(val) => {
+            setSubjectId(val);
+            setYearId("");
+            setQuestionId("");
+          }}
         >
-          <SelectTrigger className="w-full">
-            <SelectValue placeholder="All Questions" />
+          <SelectTrigger className="w-full min-w-0">
+            <SelectValue
+              placeholder={
+                !facultyId
+                  ? "Select faculty first"
+                  : loadingSubjects
+                    ? "Loading..."
+                    : "Select Subject"
+              }
+              className="truncate"
+            />
           </SelectTrigger>
-          <SelectContent>
-            <SelectItem value="all">All Questions</SelectItem>
-            {filteredQuestions.map((q) => (
-              <SelectItem key={q.id} value={q.id}>
-                Q{q.number}
-              </SelectItem>
-            ))}
+          <SelectContent className="w-[var(--radix-select-trigger-width)]">
+            {subjects
+              ?.filter((s) => s.id)
+              .map((s) => (
+                <SelectItem key={s.id} value={s.id} className="truncate">
+                  {s.name}
+                </SelectItem>
+              ))}
           </SelectContent>
         </Select>
 
-        {/* Search Input */}
-        <div className="relative w-full">
+        {/* YEAR */}
+        <Select
+          value={yearId}
+          disabled={!subjectId || loadingYears}
+          onValueChange={(val) => {
+            setYearId(val);
+            setQuestionId("");
+          }}
+        >
+          <SelectTrigger className="w-full min-w-0">
+            <SelectValue
+              placeholder={
+                !subjectId
+                  ? "Select subject first"
+                  : loadingYears
+                    ? "Loading..."
+                    : "Select Year"
+              }
+              className="truncate"
+            />
+          </SelectTrigger>
+          <SelectContent className="w-[var(--radix-select-trigger-width)]">
+            {years
+              ?.filter((y) => y.id)
+              .map((y) => (
+                <SelectItem key={y.id} value={y.id} className="truncate">
+                  {y.name}
+                </SelectItem>
+              ))}
+          </SelectContent>
+        </Select>
+
+        {/* QUESTION
+        <Select
+          value={questionId}
+          disabled={!yearId || loadingQuestions}
+          onValueChange={setQuestionId}
+        >
+          <SelectTrigger className="w-full min-w-0">
+            <SelectValue
+              placeholder={
+                !yearId
+                  ? "Select year first"
+                  : loadingQuestions
+                    ? "Loading..."
+                    : "Select Question"
+              }
+              className="truncate"
+            />
+          </SelectTrigger>
+          <SelectContent className="w-[var(--radix-select-trigger-width)]">
+            {questions
+              ?.filter((q) => q.id)
+              .map((q) => (
+                <SelectItem key={q.id} value={q.id} className="truncate">
+                  Q{q.number}
+                </SelectItem>
+              ))}
+          </SelectContent>
+        </Select> */}
+
+        {/* SEARCH */}
+        <div className="relative w-full min-w-0">
           <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" />
           <Input placeholder="Search images..." className="pl-9 w-full" />
         </div>
       </div>
 
-      {/* Gallery State Handling */}
-      {!subjectId || !yearId ? (
+      {isPending && (
+        <Button disabled={isPending} variant={"ghost"}>
+          <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+          processing...
+        </Button>
+      )}
+
+      <ErrorMessage message={error?.message} />
+
+      {/* IMAGES */}
+      {!yearId ? (
         <div className="p-20 border-2 border-dashed rounded-lg text-center text-muted-foreground">
-          Select subject and year to view images
+          Select up to a year to view images
         </div>
+      ) : loadingImages ? (
+        <div className="text-center">Loading images...</div>
       ) : (
         <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-6 gap-4">
-          {filteredImages.map((img: any) => (
-            <ImageCard
-              key={img.id}
-              image={img}
-              onEdit={setEditingImage}
-              onDelete={() => {}}
-            />
-          ))}
+          {images && images.length > 0 ? (
+            images.map((img: any) => (
+              <ImageCard
+                key={img.id}
+                image={img}
+                onEdit={setEditingImage}
+                onDelete={handleDeleteImage}
+              />
+            ))
+          ) : (
+            <div className="col-span-full py-10">
+              <p className="text-md font-bold text-center text-muted-foreground">
+                No images found for {years?.at(0)?.name || "this year"}
+              </p>
+            </div>
+          )}
         </div>
       )}
 
-      <AddImageSheet
-        open={isSheetOpen}
-        onOpenChange={setIsSheetOpen}
-        initialData={editingImage}
-      />
+      <AddImageSheet open={isSheetOpen} onOpenChange={setIsSheetOpen} />
     </div>
   );
 }

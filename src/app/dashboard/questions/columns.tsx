@@ -11,28 +11,16 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
+import { Question } from "@/types/question";
 import { ColumnDef } from "@tanstack/react-table";
 import {
   ArrowUpDown,
   Copy,
+  Loader2,
   MoreHorizontal,
   PenSquare,
   Trash2,
 } from "lucide-react";
-
-export type Question = {
-  id: string;
-  number: number;
-  question: string | null;
-  options: string[];
-  imageType: "none" | "question_image" | "option_images";
-  correctOption: string;
-  explanation: string;
-  yearId: string;
-  yearName: string;
-  createdAt: Date;
-  updatedAt: Date;
-};
 
 const imageTypeBadge: Record<
   Question["imageType"],
@@ -52,7 +40,10 @@ const imageTypeBadge: Record<
   },
 };
 
-export const columns: ColumnDef<Question>[] = [
+export const columns = (
+  onDelete: (questionId: string) => void,
+  isDeletingId?: string | null,
+): ColumnDef<Question>[] => [
   {
     accessorKey: "number",
     header: ({ column }) => (
@@ -76,14 +67,10 @@ export const columns: ColumnDef<Question>[] = [
     header: "Question",
     cell: ({ row }) => {
       const q: string | null = row.getValue("question");
-      return (
-        <span className="text-sm line-clamp-2 max-w-sm">
-          {q ? (
-            <MathText className="text-sm line-clamp-2 max-w-sm">{q}</MathText>
-          ) : (
-            <span className="text-muted-foreground italic">Image only</span>
-          )}
-        </span>
+      return q ? (
+        <MathText className="text-sm line-clamp-2 max-w-sm">{q}</MathText>
+      ) : (
+        <span className="text-muted-foreground italic text-sm">Image only</span>
       );
     },
   },
@@ -126,6 +113,7 @@ export const columns: ColumnDef<Question>[] = [
     header: () => <span className="sr-only">Actions</span>,
     cell: ({ row }) => {
       const question = row.original;
+      const isDeleting = isDeletingId === question.id;
       return (
         <div className="flex justify-end">
           <DropdownMenu>
@@ -143,11 +131,21 @@ export const columns: ColumnDef<Question>[] = [
                 <Copy /> Copy ID
               </DropdownMenuItem>
               <DropdownMenuSeparator />
-              <DropdownMenuItem>
-                <PenSquare /> Edit
-              </DropdownMenuItem>
-              <DropdownMenuItem className="text-destructive focus:text-destructive">
-                <Trash2 color="#ff6467" /> Delete
+              <DropdownMenuItem
+                disabled={isDeleting}
+                className="text-destructive focus:text-destructive"
+                onClick={() => onDelete(question.id)}
+              >
+                {isDeleting ? (
+                  <>
+                    <Loader2 className="h-4 w-4 animate-spin" />
+                    Deleting...
+                  </>
+                ) : (
+                  <>
+                    <Trash2 color="#ff6467" /> Delete
+                  </>
+                )}
               </DropdownMenuItem>
             </DropdownMenuContent>
           </DropdownMenu>

@@ -19,9 +19,12 @@ import {
 } from "@/components/ui/select";
 import { GalleryVerticalEndIcon, Loader2 } from "lucide-react";
 
-// Mock API call function
-const mockApiCall = (ms: number) =>
-  new Promise((resolve) => setTimeout(resolve, ms));
+import { useGetAllLevels } from "@/hooks/use-levels";
+import { useGetFacultiesByLevelId } from "@/hooks/use-faculties";
+import { useGetSubjectsByFacultyId } from "@/hooks/use-subjects";
+import { useGetYearsBySubjectId } from "@/hooks/use-years";
+import { useGetQuestionsByYearId } from "@/hooks/use-questions";
+import { useGetImagesByQuestionId, useUploadImages } from "@/hooks/use-images";
 
 export const AddImageSheet = ({
   open,
@@ -33,8 +36,27 @@ export const AddImageSheet = ({
   initialData?: any;
 }) => {
   const isEdit = !!initialData;
+  const [files, setFiles] = useState<File[]>([]);
   const [previews, setPreviews] = useState<string[]>([]);
   const [loading, setLoading] = useState<boolean>(false);
+
+  const [levelId, setLevelId] = useState("");
+  const [facultyId, setFacultyId] = useState("");
+  const [subjectId, setSubjectId] = useState("");
+  const [yearId, setYearId] = useState("");
+  const [questionId, setQuestionId] = useState("");
+
+  const { data: levels, isLoading: loadingLevels } = useGetAllLevels();
+  const { data: faculties, isLoading: loadingFaculties } =
+    useGetFacultiesByLevelId(levelId);
+  const { data: subjects, isLoading: loadingSubjects } =
+    useGetSubjectsByFacultyId(facultyId);
+  const { data: years, isLoading: loadingYears } =
+    useGetYearsBySubjectId(subjectId);
+  const { data: questions, isLoading: loadingQuestions } =
+    useGetQuestionsByYearId(yearId);
+
+  const { mutateAsync: uploadImages, isPending } = useUploadImages();
 
   const fileInputRef = useRef<HTMLInputElement>(null);
 
@@ -44,30 +66,41 @@ export const AddImageSheet = ({
   }, [previews]);
 
   const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    if (e.target.files) {
-      const files = Array.from(e.target.files);
-      const newPreviews = files.map((file) => URL.createObjectURL(file));
-      setPreviews(newPreviews);
+    if (!e.target.files) return;
+
+    console.log(Array.from(e.target.files));
+    const selectedFiles = Array.from(e.target.files);
+    setFiles(selectedFiles);
+
+    const previewUrls = selectedFiles.map((file) => URL.createObjectURL(file));
+    setPreviews(previewUrls);
+  };
+
+  const handleSubmit = async () => {
+    if (!questionId || files.length === 0) return;
+
+    try {
+      await uploadImages({ questionId, files });
+      handleCloseSheet();
+    } catch (error) {
+      console.error("Upload failed", error);
     }
   };
 
   const handleCloseSheet = () => {
+    reset();
     setPreviews([]);
     onOpenChange(false);
   };
 
-  const handleSubmit = async () => {
-    setLoading(true);
-    try {
-      // Simulate API call
-      await mockApiCall(2000);
-      console.log(isEdit ? "Image Updated" : "Images Added");
-      onOpenChange(false);
-    } catch (error) {
-      console.error("Operation failed");
-    } finally {
-      setLoading(false);
-    }
+  const reset = () => {
+    setFiles([]);
+    setPreviews([]);
+    setLevelId("");
+    setFacultyId("");
+    setSubjectId("");
+    setYearId("");
+    setQuestionId("");
   };
 
   return (
@@ -82,36 +115,171 @@ export const AddImageSheet = ({
           <div className="space-y-4">
             <div className="space-y-2">
               <Label>Subject</Label>
-              <Select>
-                <SelectTrigger>
-                  <SelectValue placeholder="Select Subject" />
+              {/* LEVEL */}
+              <Select
+                value={levelId}
+                onValueChange={(val) => {
+                  setLevelId(val);
+                  setFacultyId("");
+                  setSubjectId("");
+                  setYearId("");
+                  setQuestionId("");
+                }}
+              >
+                <SelectTrigger className="w-full min-w-0">
+                  <SelectValue
+                    placeholder={loadingLevels ? "Loading..." : "Select Level"}
+                    className="truncate"
+                  />
                 </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="s1">Mathematics</SelectItem>
+                <SelectContent className="w-[var(--radix-select-trigger-width)] max-w-full">
+                  {levels
+                    ?.filter((l) => l.id)
+                    .map((l) => (
+                      <SelectItem key={l.id} value={l.id} className="truncate">
+                        {l.name}
+                      </SelectItem>
+                    ))}
+                </SelectContent>
+              </Select>
+            </div>
+
+            <div className="space-y-2">
+              <Label>Faculty</Label>
+              {/* FACULTY */}
+              <Select
+                value={facultyId}
+                disabled={!levelId || loadingFaculties}
+                onValueChange={(val) => {
+                  setFacultyId(val);
+                  setSubjectId("");
+                  setYearId("");
+                  setQuestionId("");
+                }}
+              >
+                <SelectTrigger className="w-full min-w-0">
+                  <SelectValue
+                    placeholder={
+                      !levelId
+                        ? "Select level first"
+                        : loadingFaculties
+                          ? "Loading..."
+                          : "Select Faculty"
+                    }
+                    className="truncate"
+                  />
+                </SelectTrigger>
+                <SelectContent className="w-[var(--radix-select-trigger-width)]">
+                  {faculties
+                    ?.filter((f) => f.id)
+                    .map((f) => (
+                      <SelectItem key={f.id} value={f.id} className="truncate">
+                        {f.name}
+                      </SelectItem>
+                    ))}
+                </SelectContent>
+              </Select>
+            </div>
+
+            <div className="space-y-2">
+              <Label>Subject</Label>
+              {/* SUBJECT */}
+              <Select
+                value={subjectId}
+                disabled={!facultyId || loadingSubjects}
+                onValueChange={(val) => {
+                  setSubjectId(val);
+                  setYearId("");
+                  setQuestionId("");
+                }}
+              >
+                <SelectTrigger className="w-full min-w-0">
+                  <SelectValue
+                    placeholder={
+                      !facultyId
+                        ? "Select faculty first"
+                        : loadingSubjects
+                          ? "Loading..."
+                          : "Select Subject"
+                    }
+                    className="truncate"
+                  />
+                </SelectTrigger>
+                <SelectContent className="w-[var(--radix-select-trigger-width)]">
+                  {subjects
+                    ?.filter((s) => s.id)
+                    .map((s) => (
+                      <SelectItem key={s.id} value={s.id} className="truncate">
+                        {s.name}
+                      </SelectItem>
+                    ))}
                 </SelectContent>
               </Select>
             </div>
 
             <div className="space-y-2">
               <Label>Year</Label>
-              <Select>
-                <SelectTrigger>
-                  <SelectValue placeholder="Select Year" />
+              {/* YEAR */}
+              <Select
+                value={yearId}
+                disabled={!subjectId || loadingYears}
+                onValueChange={(val) => {
+                  setYearId(val);
+                  setQuestionId("");
+                }}
+              >
+                <SelectTrigger className="w-full min-w-0">
+                  <SelectValue
+                    placeholder={
+                      !subjectId
+                        ? "Select subject first"
+                        : loadingYears
+                          ? "Loading..."
+                          : "Select Year"
+                    }
+                    className="truncate"
+                  />
                 </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="y1">2024</SelectItem>
+                <SelectContent className="w-[var(--radix-select-trigger-width)]">
+                  {years
+                    ?.filter((y) => y.id)
+                    .map((y) => (
+                      <SelectItem key={y.id} value={y.id} className="truncate">
+                        {y.name}
+                      </SelectItem>
+                    ))}
                 </SelectContent>
               </Select>
             </div>
 
             <div className="space-y-2">
               <Label>Question</Label>
-              <Select>
-                <SelectTrigger>
-                  <SelectValue placeholder="Select Question" />
+              {/* QUESTION */}
+              <Select
+                value={questionId}
+                disabled={!yearId || loadingQuestions}
+                onValueChange={setQuestionId}
+              >
+                <SelectTrigger className="w-full min-w-0">
+                  <SelectValue
+                    placeholder={
+                      !yearId
+                        ? "Select year first"
+                        : loadingQuestions
+                          ? "Loading..."
+                          : "Select Question"
+                    }
+                    className="truncate"
+                  />
                 </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="q1">Q1</SelectItem>
+                <SelectContent className="w-[var(--radix-select-trigger-width)]">
+                  {questions
+                    ?.filter((q) => q.id)
+                    .map((q) => (
+                      <SelectItem key={q.id} value={q.id} className="truncate">
+                        Q{q.number}
+                      </SelectItem>
+                    ))}
                 </SelectContent>
               </Select>
             </div>
@@ -158,24 +326,18 @@ export const AddImageSheet = ({
             <Button
               variant="outline"
               className="flex-1"
-              disabled={loading}
+              disabled={isPending}
               onClick={handleCloseSheet}
             >
               Cancel
             </Button>
             <Button
               className="flex-1"
-              disabled={loading}
+              disabled={isPending}
               onClick={() => handleSubmit()}
             >
-              {loading && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
-              {isEdit
-                ? loading
-                  ? "Updating..."
-                  : "Update Image"
-                : loading
-                  ? "Adding..."
-                  : "Add Images"}
+              {isPending && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+              {isPending ? "Adding..." : "Add Images"}
             </Button>
           </div>
         </div>

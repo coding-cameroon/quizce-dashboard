@@ -27,34 +27,42 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
-import { columns, Question } from "./columns";
+import { columns } from "./columns";
+import { Question } from "@/types/question";
+import { Year } from "@/types/year";
 
 type DataTableProps = {
   data: Question[];
-  sessions: { id: string; name: string }[];
+  sessions: Year[];
+  onDelete: (questionId: string) => void;
+  isDeletingId?: string | null;
 };
 
-export function DataTable({ data, sessions }: DataTableProps) {
+export function DataTable({
+  data,
+  sessions,
+  onDelete,
+  isDeletingId,
+}: DataTableProps) {
   const [sorting, setSorting] = useState<SortingState>([]);
   const [pageSize, setPageSize] = useState(10);
   const [selectedSession, setSelectedSession] = useState<string>("");
   const [loading, setLoading] = useState(false);
   const [filteredData, setFilteredData] = useState<Question[]>([]);
 
-  // Simulate API call when session changes
   useEffect(() => {
     if (!selectedSession) return;
     setLoading(true);
     const timer = setTimeout(() => {
       setFilteredData(data.filter((q) => q.yearId === selectedSession));
       setLoading(false);
-    }, 800);
+    }, 600);
     return () => clearTimeout(timer);
   }, [selectedSession, data]);
 
   const table = useReactTable({
     data: filteredData,
-    columns,
+    columns: columns(onDelete, isDeletingId),
     onSortingChange: setSorting,
     getCoreRowModel: getCoreRowModel(),
     getSortedRowModel: getSortedRowModel(),
@@ -73,8 +81,6 @@ export function DataTable({ data, sessions }: DataTableProps) {
       <div className="flex items-center justify-between px-4 py-3 border-b border-border gap-3">
         <div className="flex items-center gap-2">
           <SlidersHorizontal className="h-3.5 w-3.5 text-muted-foreground shrink-0" />
-
-          {/* Session selector */}
           <Select value={selectedSession} onValueChange={setSelectedSession}>
             <SelectTrigger className="h-8 w-52 text-xs">
               <SelectValue placeholder="Select a session..." />
@@ -99,7 +105,6 @@ export function DataTable({ data, sessions }: DataTableProps) {
           )}
         </div>
 
-        {/* Page size */}
         {selectedSession && !loading && filteredData.length > 0 && (
           <div className="flex items-center gap-2">
             <span className="text-xs text-muted-foreground">Show</span>
@@ -129,7 +134,6 @@ export function DataTable({ data, sessions }: DataTableProps) {
 
       {/* ── BODY ── */}
       {!selectedSession ? (
-        // No session selected
         <div className="flex flex-col items-center justify-center h-56 gap-3 text-center px-4">
           <div className="flex h-12 w-12 items-center justify-center rounded-full bg-muted">
             <BookOpen className="h-5 w-5 text-muted-foreground" />
@@ -145,13 +149,11 @@ export function DataTable({ data, sessions }: DataTableProps) {
           </div>
         </div>
       ) : loading ? (
-        // Loading spinner
         <div className="flex flex-col items-center justify-center h-56 gap-3">
           <Loader2 className="h-7 w-7 animate-spin text-muted-foreground" />
           <p className="text-sm text-muted-foreground">Loading questions...</p>
         </div>
       ) : (
-        // Table
         <>
           <Table>
             <TableHeader>
@@ -187,7 +189,7 @@ export function DataTable({ data, sessions }: DataTableProps) {
               ) : (
                 <TableRow>
                   <TableCell
-                    colSpan={columns.length}
+                    colSpan={6}
                     className="h-32 text-center text-muted-foreground"
                   >
                     No questions found for this session.
@@ -197,7 +199,6 @@ export function DataTable({ data, sessions }: DataTableProps) {
             </TableBody>
           </Table>
 
-          {/* Pagination */}
           <div className="flex items-center justify-between px-4 py-3 border-t border-border">
             <span className="text-xs text-muted-foreground">
               Page {table.getState().pagination.pageIndex + 1} of{" "}
@@ -227,3 +228,4 @@ export function DataTable({ data, sessions }: DataTableProps) {
     </div>
   );
 }
+
