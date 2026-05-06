@@ -21,13 +21,12 @@ import {
   ImageIcon,
   LayoutDashboard,
   Layers,
-  ScrollText,
   Settings,
   CalendarDays,
 } from "lucide-react";
 import Image from "next/image";
 import Link from "next/link";
-import { usePathname } from "next/navigation";
+import { usePathname, useRouter } from "next/navigation";
 
 const navItems = [
   {
@@ -69,6 +68,7 @@ const navItems = [
 
 export function AppSidebar() {
   const pathname = usePathname();
+  const router = useRouter();
 
   return (
     <Sidebar collapsible="icon">
@@ -78,7 +78,8 @@ export function AppSidebar() {
           <SidebarMenuItem>
             <SidebarMenuButton
               size="lg"
-              className="gap-3 rounded-lg pointer-events-none"
+              onClick={() => router.replace("/dashboard")}
+              className="gap-3 rounded-lg cursor-pointer"
             >
               <Image src={"/logo-icon.png"} width={40} height={40} alt="logo" />
               <div className="flex flex-col">
