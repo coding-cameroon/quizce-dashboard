@@ -88,7 +88,8 @@ export function DataTable({
             <SelectContent>
               {sessions.map((s) => (
                 <SelectItem key={s.id} value={s.id}>
-                  {s.name}
+                  {s.name} {s.subject.name} {s.subject.faculty.name}{" "}
+                  {s.subject.faculty.level.name.split(" ").at(0)}
                 </SelectItem>
               ))}
             </SelectContent>
@@ -228,4 +229,3 @@ export function DataTable({
     </div>
   );
 }
-
