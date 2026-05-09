@@ -83,29 +83,35 @@ export default function ImportQuestionsPage() {
   };
 
   const handleParseManual = () => {
-  setJsonError("");
-  try {
-    const parsed = JSON.parse(manualJson);
-    if (!Array.isArray(parsed)) {
-      setJsonError("JSON must be an array of questions.");
-      return;
-    }
-    setQuestions(parsed);
-  } catch {
-    // Try fixing single backslashes
+    setJsonError("");
+
+    let cleanJson = manualJson
+      .replace(/```json/g, "")
+      .replace(/```/g, "")
+      .trim();
+
     try {
-      const fixed = manualJson.replace(/\\(?!\\)/g, "\\\\");
-      const parsed = JSON.parse(fixed);
+      const parsed = JSON.parse(manualJson);
       if (!Array.isArray(parsed)) {
         setJsonError("JSON must be an array of questions.");
         return;
       }
       setQuestions(parsed);
     } catch {
-      setJsonError("Invalid JSON. Please check the format and try again.");
+      // Try fixing single backslashes
+      try {
+        const fixed = manualJson.replace(/\\(?!\\)/g, "\\\\");
+        const parsed = JSON.parse(fixed);
+        if (!Array.isArray(parsed)) {
+          setJsonError("JSON must be an array of questions.");
+          return;
+        }
+        setQuestions(parsed);
+      } catch {
+        setJsonError("Invalid JSON. Please check the format and try again.");
+      }
     }
-  }
-};
+  };
 
   const handleSave = () => {
     if (!questions.length || !yearId) return;
